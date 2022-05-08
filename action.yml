@@ -1,0 +1,10 @@
+name: Run Fargate Task
+description: A GitHub Action for running an AWS ECS Fargate Task
+
+branding:
+  icon: cpu
+  color: orange
+
+runs:
+  using: node16
+  main: dist/index.js

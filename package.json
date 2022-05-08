@@ -1,0 +1,42 @@
+{
+  "name": "run-fargate-task-action",
+  "version": "0.0.1",
+  "description": "A GitHub Action for running an AWS ECS Fargate Task",
+  "author": "Derek McKinnon <mckinnon.derek@gmail.com>",
+  "license": "ISC",
+  "private": true,
+  "main": "lib/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/derekmckinnon/run-fargate-task-action.git"
+  },
+  "scripts": {
+    "test": "jest",
+    "build": "tsc",
+    "package": "ncc build --source-map --license licenses.txt",
+    "test-build-package": "npm run test && npm run build && npm run package",
+    "prepare": "husky install"
+  },
+  "dependencies": {
+    "@actions/core": "^1.8.0",
+    "@aws-sdk/client-ecs": "^3.85.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^27.5.0",
+    "@typescript-eslint/eslint-plugin": "^5.22.0",
+    "@typescript-eslint/parser": "^5.22.0",
+    "@vercel/ncc": "^0.33.4",
+    "eslint": "^8.14.0",
+    "eslint-config-prettier": "^8.5.0",
+    "husky": "^7.0.4",
+    "jest": "^28.1.0",
+    "lint-staged": "^12.4.1",
+    "prettier": "2.6.2",
+    "ts-jest": "^28.0.1",
+    "typescript": "^4.6.4"
+  },
+  "lint-staged": {
+    "**/*.ts": "eslint --fix",
+    "**/*": "prettier --write --ignore-unknown"
+  }
+}
