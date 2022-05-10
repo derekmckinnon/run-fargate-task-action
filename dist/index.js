@@ -6,7 +6,6 @@ require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 
 "use strict";
 
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -19,13 +18,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.FargateTaskRunner = void 0;
 const client_ecs_1 = __nccwpck_require__(8209);
+const util_waiter_1 = __nccwpck_require__(1627);
 class FargateTaskRunner {
     constructor(client, taskDefinition) {
         this.client = client;
         this.taskDefinition = taskDefinition;
     }
     run(options) {
-        var _a;
         return __awaiter(this, void 0, void 0, function* () {
             const command = new client_ecs_1.RunTaskCommand({
                 taskDefinition: this.taskDefinition,
@@ -43,50 +42,53 @@ class FargateTaskRunner {
                 },
             });
             const response = yield this.client.send(command);
-            if ((_a = response.failures) === null || _a === void 0 ? void 0 : _a.length) {
-                throw new Error(`Error: ${toErrorMessage(response.failures[0])}`);
+            const failures = response.failures || [];
+            if (failures.length) {
+                throw new Error(`Expected response to contain 0 failures, found ${failures.length}: ${JSON.stringify(failures)}`);
             }
-            return response.tasks[0];
+            const tasks = response.tasks || [];
+            if (tasks.length !== 1) {
+                throw new Error(`Expected response to contain 1 task, found ${tasks.length}`);
+            }
+            return tasks[0];
         });
     }
-    wait(task) {
+    waitForExit(task) {
+        var _a;
         return __awaiter(this, void 0, void 0, function* () {
-            yield (0, client_ecs_1.waitUntilTasksStopped)({
+            if (!task.taskArn) {
+                throw new Error('Invalid Task: Missing taskArn');
+            }
+            const result = yield (0, client_ecs_1.waitUntilTasksStopped)({
                 client: this.client,
                 maxWaitTime: 1800, // 60 minutes
             }, {
                 tasks: [task.taskArn],
                 cluster: task.clusterArn,
             });
-        });
-    }
-    getTaskExitData(task) {
-        var _a;
-        return __awaiter(this, void 0, void 0, function* () {
+            if (result.state !== util_waiter_1.WaiterState.SUCCESS) {
+                throw new Error(`Error waiting for task: ${JSON.stringify(result)}`);
+            }
             const command = new client_ecs_1.DescribeTasksCommand({
                 tasks: [task.taskArn],
                 cluster: task.clusterArn,
             });
             const response = yield this.client.send(command);
-            if ((_a = response.failures) === null || _a === void 0 ? void 0 : _a.length) {
-                return {
-                    succeeded: false,
-                    errors: response.failures.map(toErrorMessage),
-                };
+            const failures = response.failures || [];
+            if (failures.length) {
+                throw new Error(`Error describing ECS Tasks: ${JSON.stringify(failures)}`);
             }
-            const containers = response.tasks[0].containers;
-            const errors = containers.filter(c => c.exitCode !== 0).map(c => c.reason);
-            return {
-                succeeded: errors.length === 0,
-                errors,
-            };
+            const containers = ((_a = response.tasks) === null || _a === void 0 ? void 0 : _a[0].containers) || [];
+            const errors = containers
+                .filter(c => c.exitCode !== 0)
+                .map(c => `${c.name} (${c.exitCode}): ${c.reason}`);
+            if (errors.length) {
+                throw new Error(`${errors.length} container(s) exited with errors: ${JSON.stringify(errors)}`);
+            }
         });
     }
 }
 exports.FargateTaskRunner = FargateTaskRunner;
-function toErrorMessage({ arn, reason, detail }) {
-    return `${arn} ${reason} - ${detail}`;
-}
 
 
 /***/ }),
@@ -143,6 +145,7 @@ function run() {
             const securityGroups = utils.getListInput('securityGroups', true);
             const assignPublicIp = utils.getBooleanInput('assign-public-ip');
             const waitForTask = utils.getBooleanInput('wait-for-task');
+            const failOnTaskError = utils.getBooleanInput('fail-on-task-error');
             const client = new client_ecs_1.ECSClient({
                 customUserAgent: 'run-fargate-task-action',
             });
@@ -158,12 +161,20 @@ function run() {
             if (!waitForTask) {
                 return;
             }
-            yield runner.wait(task);
-            const exitData = yield runner.getTaskExitData(task);
-            core.setOutput('task-succeeded', exitData.succeeded);
-            core.setOutput('task-errors', exitData.errors);
+            try {
+                yield runner.waitForExit(task);
+            }
+            catch (e) {
+                const error = utils.getErrorMessage(e);
+                core.setOutput('task-error', error);
+                if (failOnTaskError) {
+                    core.setFailed(error);
+                }
+            }
         }
-        catch (error) {
+        catch (e) {
+            const error = utils.getErrorMessage(e);
+            core.setOutput('task-error', error);
             core.setFailed(error);
         }
     });
@@ -202,7 +213,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.parseJSON = exports.parseList = exports.getObjectInput = exports.getListInput = exports.getBooleanInput = exports.getInput = void 0;
+exports.getErrorMessage = exports.parseJSON = exports.parseList = exports.getObjectInput = exports.getListInput = exports.getBooleanInput = exports.getInput = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 function getInput(name, required = false) {
     return core.getInput(name, { required });
@@ -236,6 +247,13 @@ function parseJSON(json) {
     return JSON.parse(json);
 }
 exports.parseJSON = parseJSON;
+function getErrorMessage(e) {
+    if (e instanceof Error) {
+        return e.message;
+    }
+    return String(e);
+}
+exports.getErrorMessage = getErrorMessage;
 
 
 /***/ }),
