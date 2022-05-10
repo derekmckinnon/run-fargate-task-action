@@ -19,11 +19,6 @@ export interface RunOptions {
   overrides?: TaskOverride
 }
 
-export interface TaskExitResult {
-  succeeded: boolean
-  errors: string[]
-}
-
 export class FargateTaskRunner {
   constructor(private client: ECSClient, private taskDefinition: string) {}
 
