@@ -12,6 +12,7 @@ async function run() {
     const securityGroups = utils.getListInput('securityGroups', true)
     const assignPublicIp = utils.getBooleanInput('assign-public-ip')
     const waitForTask = utils.getBooleanInput('wait-for-task')
+    const failOnTaskError = utils.getBooleanInput('fail-on-task-error')
 
     const client = new ECSClient({
       customUserAgent: 'run-fargate-task-action',
@@ -33,14 +34,20 @@ async function run() {
       return
     }
 
-    await runner.wait(task)
+    try {
+      await runner.waitForExit(task)
+    } catch (e) {
+      const error = utils.getErrorMessage(e)
+      core.setOutput('task-error', error)
 
-    const exitData = await runner.getTaskExitData(task)
-
-    core.setOutput('task-succeeded', exitData.succeeded)
-    core.setOutput('task-errors', exitData.errors)
-  } catch (error) {
-    core.setFailed(error as Error)
+      if (failOnTaskError) {
+        core.setFailed(error)
+      }
+    }
+  } catch (e) {
+    const error = utils.getErrorMessage(e)
+    core.setOutput('task-error', error)
+    core.setFailed(error)
   }
 }
 
