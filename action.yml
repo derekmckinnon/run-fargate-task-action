@@ -1,9 +1,50 @@
 name: Run Fargate Task
 description: A GitHub Action for running an AWS ECS Fargate Task
+author: Derek McKinnon <mckinnon.derek@gmail.com>
 
 branding:
   icon: cpu
   color: orange
+
+inputs:
+  task-definition:
+    description: The ARN of the task definition
+    required: true
+
+  cluster:
+    description: The name of the ECS cluster in which to run the task. Uses default cluster if omitted.
+    required: false
+
+  overrides:
+    description: A JSON string of container overrides. Defaults to `undefined`
+    required: false
+
+  subnets:
+    description: A comma-separated list of subnet IDs in which to launch the task
+    required: true
+
+  securityGroups:
+    description: A comma-separated list of security group IDs to assign to the task
+    required: true
+
+  assignPublicIp:
+    description: Controls whether or not the task is assigned a public IP. Defaults to `false`.
+    required: false
+
+  waitForTask:
+    description: Controls whether or not the runner should wait for the task to complete. Defaults to `false`.
+    required: false
+
+  failOnTaskError:
+    description: Controls whether or not to fail the step upon task or container errors. Defaults to `false`.
+    required: false
+
+outputs:
+  task-arn:
+    description: The ARN of the task that was ran
+
+  task-error:
+    description: Will be set to a human-readable message if an error occurs, otherwise it will be empty
 
 runs:
   using: node16
