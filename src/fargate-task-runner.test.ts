@@ -1,14 +1,26 @@
 import { mockClient } from 'aws-sdk-client-mock'
-import { ECSClient, RunTaskCommand } from '@aws-sdk/client-ecs'
+import {
+  DescribeTasksCommand,
+  ECSClient,
+  RunTaskCommand,
+} from '@aws-sdk/client-ecs'
 import { FargateTaskRunner } from './fargate-task-runner'
 
+function assertErrorMatches(e: unknown, expected: string | RegExp) {
+  if (!(e instanceof Error)) {
+    fail(`Unexpected error type: ${typeof e}`)
+  }
+
+  expect(e.message).toMatch(expected)
+}
+
+const mock = mockClient(ECSClient)
+const client = new ECSClient({})
+const sut = new FargateTaskRunner(client, '')
+
+beforeEach(() => mock.reset())
+
 describe('run', () => {
-  const mock = mockClient(ECSClient)
-  const client = new ECSClient({})
-  const sut = new FargateTaskRunner(client, '')
-
-  beforeEach(() => mock.reset())
-
   it('returns task on success', async () => {
     mock.on(RunTaskCommand).resolves({
       tasks: [
@@ -69,21 +81,91 @@ describe('run', () => {
     try {
       await sut.run(inputs)
     } catch (e) {
-      assertErrorMatches(e, /Expected response to contain 1 task, found 0/)
+      assertErrorMatches(e, 'Expected response to contain 1 task, found 0')
     }
 
     try {
       await sut.run(inputs)
     } catch (e) {
-      assertErrorMatches(e, /Expected response to contain 1 task, found 2/)
+      assertErrorMatches(e, 'Expected response to contain 1 task, found 2')
     }
   })
 })
 
-function assertErrorMatches(e: unknown, r: RegExp) {
-  if (!(e instanceof Error)) {
-    fail(`Unexpected error type: ${typeof e}`)
-  }
+describe('waitForExit', () => {
+  it('throws on invalid taskArn', async () => {
+    try {
+      await sut.waitForExit({ clusterArn: 'bar' })
+    } catch (e) {
+      assertErrorMatches(e, 'Invalid Task: Missing taskArn')
+    }
+  })
 
-  expect(e.message).toMatch(r)
-}
+  it('throws on invalid taskArn', async () => {
+    try {
+      await sut.waitForExit({ taskArn: 'foobar' })
+    } catch (e) {
+      assertErrorMatches(e, 'Invalid Task: Missing clusterArn')
+    }
+  })
+
+  it('throws when api returns failures', async () => {
+    mock
+      .on(DescribeTasksCommand)
+      .resolvesOnce({
+        tasks: [
+          {
+            lastStatus: 'STOPPED',
+          },
+        ],
+        failures: [],
+      })
+      .resolvesOnce({
+        tasks: [],
+      })
+
+    try {
+      await sut.waitForExit({
+        taskArn: 'foobar',
+        clusterArn: 'bar',
+      })
+    } catch (e) {
+      assertErrorMatches(e, 'Expected response to contain 1 task, found 0')
+    }
+  })
+
+  it('throws on container errors', async () => {
+    mock
+      .on(DescribeTasksCommand)
+      .resolvesOnce({
+        tasks: [
+          {
+            lastStatus: 'STOPPED',
+          },
+        ],
+        failures: [],
+      })
+      .resolvesOnce({
+        tasks: [
+          {
+            containers: [
+              {
+                exitCode: 1,
+                name: 'foobar',
+                reason: 'test',
+              },
+            ],
+          },
+        ],
+      })
+
+    try {
+      await sut.waitForExit({
+        taskArn: 'foobar',
+        clusterArn: 'bar',
+      })
+    } catch (e) {
+      assertErrorMatches(e, /1 container(s)*/)
+    }
+  })
+})

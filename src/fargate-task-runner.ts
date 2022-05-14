@@ -9,8 +9,6 @@ import {
   waitUntilTasksStopped,
 } from '@aws-sdk/client-ecs'
 
-import { WaiterState } from '@aws-sdk/util-waiter'
-
 export interface RunOptions {
   subnets: string[]
   securityGroups: string[]
@@ -65,7 +63,11 @@ export class FargateTaskRunner {
       throw new Error('Invalid Task: Missing taskArn')
     }
 
-    const result = await waitUntilTasksStopped(
+    if (!task.clusterArn) {
+      throw new Error('Invalid Task: Missing clusterArn')
+    }
+
+    await waitUntilTasksStopped(
       {
         client: this.client,
         maxWaitTime: 1800, // 60 minutes
@@ -75,10 +77,6 @@ export class FargateTaskRunner {
         cluster: task.clusterArn,
       }
     )
-
-    if (result.state !== WaiterState.SUCCESS) {
-      throw new Error(`Error waiting for task: ${JSON.stringify(result)}`)
-    }
 
     const command = new DescribeTasksCommand({
       tasks: [task.taskArn],
@@ -92,7 +90,13 @@ export class FargateTaskRunner {
       throw new Error(`Error describing ECS Tasks: ${JSON.stringify(failures)}`)
     }
 
-    const containers = response.tasks?.[0].containers || []
+    const tasks = response.tasks || []
+    if (!tasks.length) {
+      throw new Error(`Expected response to contain 1 task, found 0`)
+    }
+
+    const containers = tasks[0].containers || []
+
     const errors = containers
       .filter(c => c.exitCode !== 0)
       .map(c => `${c.name} (${c.exitCode}): ${c.reason}`)
