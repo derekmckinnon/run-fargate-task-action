@@ -144,7 +144,7 @@ function run() {
             const cluster = utils.getInput('cluster');
             const overrides = utils.getObjectInput('overrides');
             const subnets = utils.getListInput('subnets', true);
-            const securityGroups = utils.getListInput('securityGroups', true);
+            const securityGroups = utils.getListInput('security-groups', true);
             const assignPublicIp = utils.getBooleanInput('assign-public-ip');
             const waitForTask = utils.getBooleanInput('wait-for-task');
             const failOnTaskError = utils.getBooleanInput('fail-on-task-error');
