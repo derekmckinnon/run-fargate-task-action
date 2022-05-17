@@ -35,7 +35,7 @@ inputs:
     description: Controls whether or not the runner should wait for the task to complete. Defaults to `false`.
     required: false
 
-  fai-on-task-error:
+  fail-on-task-error:
     description: Controls whether or not to fail the step upon task or container errors. Defaults to `false`.
     required: false
 
