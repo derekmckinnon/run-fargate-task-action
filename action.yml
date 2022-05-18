@@ -28,16 +28,16 @@ inputs:
     required: true
 
   assign-public-ip:
-    description: Controls whether or not the task is assigned a public IP. Defaults to `false`.
-    required: false
+    description: Controls whether or not the task is assigned a public IP
+    required: true
 
   wait-for-task:
-    description: Controls whether or not the runner should wait for the task to complete. Defaults to `false`.
-    required: false
+    description: Controls whether or not the runner should wait for the task to complete
+    required: true
 
   fail-on-task-error:
-    description: Controls whether or not to fail the step upon task or container errors. Defaults to `false`.
-    required: false
+    description: Controls whether or not to fail the step upon task or container errors
+    required: true
 
 outputs:
   task-arn:
