@@ -12,7 +12,7 @@
   "scripts": {
     "test": "jest",
     "transpile": "tsc",
-    "build": "ncc build --source-map --license licenses.txt --external encoding",
+    "build": "ncc build --source-map --license licenses.txt",
     "package": "npm run test && npm run transpile && npm run build",
     "prepare": "husky install"
   },
