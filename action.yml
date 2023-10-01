@@ -47,5 +47,5 @@ outputs:
     description: Will be set to a human-readable message if an error occurs, otherwise it will be empty
 
 runs:
-  using: node16
+  using: node20
   main: dist/index.js
