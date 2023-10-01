@@ -11,9 +11,9 @@
   },
   "scripts": {
     "test": "jest",
-    "build": "tsc",
-    "package": "ncc build --source-map --license licenses.txt",
-    "test-build-package": "npm run test && npm run build && npm run package",
+    "transpile": "tsc",
+    "build": "ncc build --source-map --license licenses.txt",
+    "package": "npm run test && npm run transpile && npm run build",
     "prepare": "husky install"
   },
   "dependencies": {
