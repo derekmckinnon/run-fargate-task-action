@@ -28,4 +28,4 @@ jobs:
         if: ${{ steps.changes.outputs.files_changed == 'true' }}
         with:
           script: |
-            core.setFailed("The distributable action code is out of sync with the source code. Run 'npm run test-build-package'.")
+            core.setFailed("The distributable action code is out of sync with the source code. Run 'npm run package'.")
