@@ -8,7 +8,7 @@ See [Complete Example](#complete-example) below.
 # Usage
 
 ```yaml
-- uses: derekmckinnon/run-fargate-task-action@v1
+- uses: derekmckinnon/run-fargate-task-action@v2
   with:
     task-definition: task.json
     cluster: foo-cluster
@@ -49,11 +49,11 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: docker/setup-buildx-action@v1
-      - uses: docker/setup-qemu-action@v1
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-qemu-action@v3
 
-      - uses: aws-actions/configure-aws-credentials@v1
+      - uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: us-east-1
           role-to-assume: arn:aws:iam::123456789100:role/my-github-actions-role
@@ -61,7 +61,7 @@ jobs:
       - uses: aws-actions/amazon-ecr-login@v1
         id: ecr
 
-      - uses: docker/metadata-action@v3
+      - uses: docker/metadata-action@v5
         id: meta
         with:
           images: ${{ steps.ecr.outputs.registry }}/foobar
@@ -71,7 +71,7 @@ jobs:
             org.opencontainers.image.title=Foobar
             org.opencontainers.image.vendor=Foo Inc.
 
-      - uses: docker/build-push-action@v2
+      - uses: docker/build-push-action@v5
         with:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -92,7 +92,7 @@ jobs:
           echo "::set-output name=arn::$arn"
         id: register-task-definition
 
-      - uses: derekmckinnon/run-fargate-task-action@v1
+      - uses: derekmckinnon/run-fargate-task-action@v2
         with:
           task-definition: ${{ steps.register-task-definition.outputs.arn }}
           cluster: foo-cluster
